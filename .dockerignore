@@ -1,0 +1,11 @@
+.git
+gguf
+ds4flash.gguf
+ds4
+ds4-server
+ds4-bench
+ds4_test
+*.o
+*.dSYM
+misc
+TODO.md

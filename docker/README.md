@@ -1,0 +1,161 @@
+# Docker
+
+The Docker setup builds and serves `ds4-server` with the Linux CUDA backend. It
+does not build or use the macOS Metal backend.
+
+Warning: this Docker setup currently targets CUDA systems only. It is not a
+portable container path for Apple Silicon or other Metal-backed macOS systems,
+and it does not support the Metal backend.
+
+## Requirements
+
+- Docker with Compose v2
+- NVIDIA driver compatible with CUDA 13 containers
+- NVIDIA Container Toolkit configured for Docker GPU access
+- Enough disk space for the selected GGUF model and disk KV cache
+
+The default image uses CUDA 13:
+
+- Build stage: `nvidia/cuda:13.0.3-devel-ubuntu24.04`
+- Runtime stage: `nvidia/cuda:13.0.3-runtime-ubuntu24.04`
+
+The CUDA and Ubuntu image versions are build-time parameters. The defaults are
+`CUDA_VERSION=13.0.3` and `UBUNTU_VERSION=24.04`.
+
+## Start
+
+From the repository root:
+
+```sh
+docker compose up --build
+```
+
+On first startup the container downloads the selected model into the weights
+volume, then starts `ds4-server` on port `8000`.
+
+The server exposes the same API as the native binary, including:
+
+- `GET /v1/models`
+- `POST /v1/chat/completions`
+- `POST /v1/completions`
+- `POST /v1/messages`
+
+## Volumes
+
+Compose bind-mounts two directories under `DS4_VOLUMES_HOST_DIR`, which defaults
+to `./volumes` relative to the repository root:
+
+- `${DS4_VOLUMES_HOST_DIR:-./volumes}/weights` mounted at `/models` for GGUF weights
+- `${DS4_VOLUMES_HOST_DIR:-./volumes}/kv-cache` mounted at `/kv-cache` for disk KV checkpoints
+
+The model downloader resumes partial downloads and skips files that are already
+present in `/models`.
+
+## Configuration
+
+Compose reads a root `.env` file by default for variable interpolation. These are
+the main knobs:
+
+```env
+DS4_MODEL=q2-imatrix
+DS4_ENABLE_MTP=0
+DS4_CTX=100000
+DS4_KV_DISK_SPACE_MB=8192
+DS4_MTP_DRAFT=2
+DS4_MTP_MARGIN=
+DS4_THREADS=
+DS4_EXTRA_ARGS=
+DS4_VOLUMES_HOST_DIR=./volumes
+HF_TOKEN=
+CUDA_VERSION=13.0.3
+UBUNTU_VERSION=24.04
+CUDA_ARCH=
+```
+
+`DS4_MODEL` is passed to `download_model.sh`. Supported values are:
+
+- `q2-imatrix`
+- `q4-imatrix`
+- `q2`
+- `q4`
+- `none`
+
+Use `none` only when you provide a model path yourself with `DS4_EXTRA_ARGS` or
+by overriding the container command.
+
+`DS4_ENABLE_MTP=1` downloads the optional MTP GGUF and starts the server with
+`--mtp /models/DeepSeek-V4-Flash-MTP-Q4K-Q8_0-F32.gguf`.
+
+`DS4_CTX` maps to `--ctx`.
+
+`DS4_KV_DISK_SPACE_MB` maps to `--kv-disk-space-mb`.
+
+`DS4_EXTRA_ARGS` is appended to the generated `ds4-server` command for advanced
+server flags such as `--quality` or cache policy tuning.
+
+`DS4_VOLUMES_HOST_DIR` selects the host directory used for persistent weights and
+disk KV cache bind mounts. The default is `./volumes`, with `weights` and
+`kv-cache` subdirectories below it.
+
+`CUDA_ARCH` is a build argument passed to `make`. Leave it empty for the default
+container build behavior, or set it when you need an explicit NVCC architecture.
+
+`CUDA_VERSION` and `UBUNTU_VERSION` select the NVIDIA CUDA base images used for
+both build and runtime stages. Keep `CUDA_VERSION` compatible with the host
+NVIDIA driver. A host where `nvidia-smi` reports `CUDA Version: 13.0` should use
+a CUDA `13.0.x` container, not `13.1.x`.
+
+## Examples
+
+Use the default q2 imatrix model:
+
+```sh
+docker compose up --build
+```
+
+Enable MTP and use a larger disk KV cache:
+
+```sh
+DS4_ENABLE_MTP=1 DS4_KV_DISK_SPACE_MB=32768 docker compose up --build
+```
+
+Use q4 imatrix weights:
+
+```sh
+DS4_MODEL=q4-imatrix docker compose up --build
+```
+
+Set a larger context window:
+
+```sh
+DS4_CTX=250000 docker compose up --build
+```
+
+Store weights and disk KV cache under a different host directory:
+
+```sh
+DS4_VOLUMES_HOST_DIR=/data/ds4 docker compose up --build
+```
+
+Pass extra server flags:
+
+```sh
+DS4_EXTRA_ARGS="--quality --kv-cache-min-tokens 1024" docker compose up --build
+```
+
+Build against a different compatible CUDA container version:
+
+```sh
+CUDA_VERSION=13.0.3 UBUNTU_VERSION=24.04 docker compose build
+```
+
+## Authentication
+
+Public downloads normally do not require authentication. If Hugging Face requires
+a token, set `HF_TOKEN` in the environment or in the root `.env` file.
+
+## Notes
+
+The first startup can take a long time because the q2 model is roughly 81 GB and
+the q4 model is roughly 153 GB. Keep the weights volume mounted so subsequent
+starts reuse the existing GGUF files.
