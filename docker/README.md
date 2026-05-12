@@ -42,14 +42,15 @@ The server exposes the same API as the native binary, including:
 
 ## Volumes
 
-Compose bind-mounts two directories under `DS4_VOLUMES_HOST_DIR`, which defaults
-to `./volumes` relative to the repository root:
+Compose bind-mounts the GGUF weights directory and disk KV cache directory:
 
-- `${DS4_VOLUMES_HOST_DIR:-./volumes}/weights` mounted at `/models` for GGUF weights
+- `${DS4_WEIGHTS_HOST_DIR:-./gguf}` mounted at `/models` for GGUF weights
 - `${DS4_VOLUMES_HOST_DIR:-./volumes}/kv-cache` mounted at `/kv-cache` for disk KV checkpoints
 
 The model downloader resumes partial downloads and skips files that are already
-present in `/models`.
+present in `/models`. The default weights mount is `./gguf`, matching the native
+`download_model.sh` default, so models downloaded on the host are reused by the
+container instead of downloaded again.
 
 ## Configuration
 
@@ -65,6 +66,7 @@ DS4_MTP_DRAFT=2
 DS4_MTP_MARGIN=
 DS4_THREADS=
 DS4_EXTRA_ARGS=
+DS4_WEIGHTS_HOST_DIR=./gguf
 DS4_VOLUMES_HOST_DIR=./volumes
 HF_TOKEN=
 CUDA_VERSION=13.0.3
@@ -93,9 +95,11 @@ by overriding the container command.
 `DS4_EXTRA_ARGS` is appended to the generated `ds4-server` command for advanced
 server flags such as `--quality` or cache policy tuning.
 
-`DS4_VOLUMES_HOST_DIR` selects the host directory used for persistent weights and
-disk KV cache bind mounts. The default is `./volumes`, with `weights` and
-`kv-cache` subdirectories below it.
+`DS4_WEIGHTS_HOST_DIR` selects the host directory mounted at `/models`. The
+default is `./gguf`, matching the native model downloader.
+
+`DS4_VOLUMES_HOST_DIR` selects the host directory used for remaining persistent
+bind mounts. The disk KV cache uses the `kv-cache` subdirectory below it.
 
 `CUDA_ARCH` is a build argument passed to `make`. Leave it empty for the default
 container build behavior, or set it when you need an explicit NVCC architecture.
@@ -131,10 +135,10 @@ Set a larger context window:
 DS4_CTX=250000 docker compose up --build
 ```
 
-Store weights and disk KV cache under a different host directory:
+Store weights and disk KV cache under different host directories:
 
 ```sh
-DS4_VOLUMES_HOST_DIR=/data/ds4 docker compose up --build
+DS4_WEIGHTS_HOST_DIR=/data/ds4/gguf DS4_VOLUMES_HOST_DIR=/data/ds4 docker compose up --build
 ```
 
 Pass extra server flags:

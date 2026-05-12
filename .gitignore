@@ -7,7 +7,7 @@
 /ds4flash.gguf
 /TODO.md
 /gguf/
-/volumes/
+/kv-cache/
 *.o
 *.dSYM/
 /misc/

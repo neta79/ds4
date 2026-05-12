@@ -24,6 +24,6 @@ services:
       DS4_THREADS: ${DS4_THREADS:-}
       DS4_EXTRA_ARGS: ${DS4_EXTRA_ARGS:-}
     volumes:
-      - ${DS4_VOLUMES_HOST_DIR:-./volumes}/weights:/models
-      - ${DS4_VOLUMES_HOST_DIR:-./volumes}/kv-cache:/kv-cache
+      - ${DS4_WEIGHTS_HOST_DIR:-./gguf}:/models
+      - ${DS4_VOLUMES_HOST_DIR:-./kv-cache}:/kv-cache
     restart: unless-stopped
