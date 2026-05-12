@@ -1,20 +1,16 @@
 # Docker
 
-The Docker setup builds and serves `ds4-server` with the Linux CUDA backend. It
-does not build or use the macOS Metal backend.
-
-Warning: this Docker setup currently targets CUDA systems only. It is not a
-portable container path for Apple Silicon or other Metal-backed macOS systems,
-and it does not support the Metal backend.
+The Docker setup builds and serves `ds4-server` with the Linux CUDA backend. 
+It currently does not support the ds4 Metal backend, although this should be easy enought to add.
 
 ## Requirements
 
 - Docker with Compose v2
-- NVIDIA driver compatible with CUDA 13 containers
+- NVIDIA driver compatible with CUDA 12/13 containers
 - NVIDIA Container Toolkit configured for Docker GPU access
 - Enough disk space for the selected GGUF model and disk KV cache
 
-The default image uses CUDA 13:
+The default image uses CUDA 13, which is what most DGX Spark system are currently targeting:
 
 - Build stage: `nvidia/cuda:13.0.3-devel-ubuntu24.04`
 - Runtime stage: `nvidia/cuda:13.0.3-runtime-ubuntu24.04`
@@ -31,7 +27,7 @@ docker compose up --build
 ```
 
 On first startup the container downloads the selected model into the weights
-volume, then starts `ds4-server` on port `8000`.
+volume, then starts `ds4-server` on port `8000`. Which model? See `DS4_MODEL` later.
 
 The server exposes the same API as the native binary, including:
 
@@ -58,7 +54,7 @@ Compose reads a root `.env` file by default for variable interpolation. These ar
 the main knobs:
 
 ```env
-DS4_MODEL=q2-imatrix
+DS4_MODEL=q2
 DS4_ENABLE_MTP=0
 DS4_CTX=100000
 DS4_KV_DISK_SPACE_MB=8192
@@ -74,7 +70,7 @@ UBUNTU_VERSION=24.04
 CUDA_ARCH=
 ```
 
-`DS4_MODEL` is passed to `download_model.sh`. Supported values are:
+`DS4_MODEL` is passed to `download_model.sh`. Supported values at the time of writing are:
 
 - `q2-imatrix`
 - `q4-imatrix`
@@ -111,7 +107,7 @@ a CUDA `13.0.x` container, not `13.1.x`.
 
 ## Examples
 
-Use the default q2 imatrix model:
+Use the default q2 model:
 
 ```sh
 docker compose up --build
@@ -123,10 +119,10 @@ Enable MTP and use a larger disk KV cache:
 DS4_ENABLE_MTP=1 DS4_KV_DISK_SPACE_MB=32768 docker compose up --build
 ```
 
-Use q4 imatrix weights:
+Use q4 weights for the lucky RAM owners:
 
 ```sh
-DS4_MODEL=q4-imatrix docker compose up --build
+DS4_MODEL=q4 docker compose up --build
 ```
 
 Set a larger context window:
