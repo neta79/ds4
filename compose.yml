@@ -6,6 +6,7 @@ services:
       args:
         CUDA_VERSION: ${CUDA_VERSION:-13.0.3}
         UBUNTU_VERSION: ${UBUNTU_VERSION:-24.04}
+        DS4_BUILD_TARGET: ${DS4_BUILD_TARGET:-cuda-generic}
         CUDA_ARCH: ${CUDA_ARCH:-}
     image: ds4:local
     gpus: all

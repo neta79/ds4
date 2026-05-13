@@ -67,6 +67,7 @@ DS4_VOLUMES_HOST_DIR=./volumes
 HF_TOKEN=
 CUDA_VERSION=13.0.3
 UBUNTU_VERSION=24.04
+DS4_BUILD_TARGET=cuda-generic
 CUDA_ARCH=
 ```
 
@@ -97,8 +98,16 @@ default is `./gguf`, matching the native model downloader.
 `DS4_VOLUMES_HOST_DIR` selects the host directory used for remaining persistent
 bind mounts. The disk KV cache uses the `kv-cache` subdirectory below it.
 
-`CUDA_ARCH` is a build argument passed to `make`. Leave it empty for the default
-container build behavior, or set it when you need an explicit NVCC architecture.
+`DS4_BUILD_TARGET` selects the Makefile target for the Linux CUDA build:
+
+| Value | Effect |
+|---|---|
+| `cuda-generic` (default) | `make CUDA_ARCH=native` — targets the visible GPU via `nvcc -arch=native` |
+| `cuda-spark` | `make CUDA_ARCH=` — omits `-arch` for DGX Spark / GB10 |
+| `cuda` | Use with `CUDA_ARCH=sm_N` for an explicit architecture override |
+
+`CUDA_ARCH` is passed alongside `DS4_BUILD_TARGET` and is only consumed when
+`DS4_BUILD_TARGET=cuda`. For the other targets the variable is silently ignored.
 
 `CUDA_VERSION` and `UBUNTU_VERSION` select the NVIDIA CUDA base images used for
 both build and runtime stages. Keep `CUDA_VERSION` compatible with the host
@@ -141,6 +150,18 @@ Pass extra server flags:
 
 ```sh
 DS4_EXTRA_ARGS="--quality --kv-cache-min-tokens 1024" docker compose up --build
+```
+
+Build for DGX Spark / GB10 (omits explicit `nvcc -arch`):
+
+```sh
+DS4_BUILD_TARGET=cuda-spark docker compose up --build
+```
+
+Build with an explicit CUDA architecture override:
+
+```sh
+DS4_BUILD_TARGET=cuda CUDA_ARCH=sm_120 docker compose up --build
 ```
 
 Build against a different compatible CUDA container version:

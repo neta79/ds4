@@ -13,8 +13,9 @@ RUN apt-get update \
 WORKDIR /src
 COPY . .
 
-ARG CUDA_ARCH=""
-RUN make ds4-server CUDA_ARCH="$CUDA_ARCH"
+ARG DS4_BUILD_TARGET=cuda-generic
+ARG CUDA_ARCH=
+RUN make $(DS4_BUILD_TARGET) CUDA_ARCH="$(CUDA_ARCH)"
 
 FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
