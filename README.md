@@ -1,6 +1,6 @@
 # DwarfStar 4
 
-DrawfStar 4 is a small native inference engine specific for **DeepSeek V4 Flash**. It is
+DwarfStar 4 is a small native inference engine specific for **DeepSeek V4 Flash**. It is
 intentionally narrow: not a generic GGUF runner, not a wrapper around another
 runtime: it is completely self-contained. Other than running the model in a
 correct and fast way, the project goal is to provide DS4 specific loading,
@@ -21,7 +21,7 @@ other contributors.
 ## Motivations
 
 Now, back at this project. Why we believe DeepSeek v4 Flash to be a pretty special
-model deserving a stand alone engine? Because after comparing it with powerful smaller
+model deserving a standalone engine? Because after comparing it with powerful smaller
 dense models, we can report that:
 
 1. DeepSeek v4 Flash is faster because of less active parameters.
